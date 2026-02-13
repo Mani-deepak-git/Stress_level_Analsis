@@ -1,0 +1,42 @@
+============================================================
+VOICE STRESS MODEL EVALUATION RESULTS
+============================================================
+
+Overall Metrics:
+  Accuracy:           0.7222 (72.22%)
+  Precision (Macro):  0.7196
+  Precision (Weighted): 0.7251
+  Recall (Macro):     0.7249
+  Recall (Weighted):  0.7222
+  F1-Score (Macro):   0.7209
+  F1-Score (Weighted): 0.7223
+
+Per-Class Metrics:
+
+  Low Stress:
+    Precision: 0.7087
+    Recall:    0.7604
+    F1-Score:  0.7337
+
+  Medium Stress:
+    Precision: 0.6829
+    Recall:    0.7273
+    F1-Score:  0.7044
+
+  High Stress:
+    Precision: 0.7670
+    Recall:    0.6870
+    F1-Score:  0.7248
+
+============================================================
+
+Detailed Classification Report:
+               precision    recall  f1-score   support
+
+   Low Stress       0.71      0.76      0.73        96
+Medium Stress       0.68      0.73      0.70        77
+  High Stress       0.77      0.69      0.72       115
+
+     accuracy                           0.72       288
+    macro avg       0.72      0.72      0.72       288
+ weighted avg       0.73      0.72      0.72       288

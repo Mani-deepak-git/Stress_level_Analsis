@@ -1,0 +1,8 @@
+# Additional dependencies for real-time voice confidence analysis
+# Add these to your existing requirements.txt
+
+sounddevice==0.4.6  # Live audio capture from microphone
+# Alternative: pyaudio==0.2.13 (if sounddevice doesn't work)
+
+# Note: All other dependencies (torch, librosa, fastapi, etc.) 
+# are already in your main requirements.txt
