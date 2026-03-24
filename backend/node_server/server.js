@@ -9,11 +9,12 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const server = http.createServer(app);
 const FRONTEND_URL = process.env.FRONTEND_URL;
-const allowedOrigin = FRONTEND_URL || true;
+const DEFAULT_LOCAL_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
+const allowedOrigins = FRONTEND_URL ? [FRONTEND_URL, ...DEFAULT_LOCAL_ORIGINS] : true;
 
 // CORS configuration
 app.use(cors({
-    origin: allowedOrigin,
+    origin: allowedOrigins,
     credentials: true
 }));
 
@@ -23,7 +24,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Socket.IO setup
 const io = socketIo(server, {
     cors: {
-        origin: allowedOrigin,
+        origin: allowedOrigins,
         methods: ["GET", "POST"],
         credentials: true
     },
@@ -31,7 +32,7 @@ const io = socketIo(server, {
 });
 
 // AI Backend connection
-const AI_BACKEND_URL = process.env.AI_BACKEND_URL || 'http://127.0.0.1:8001';
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || 'http://localhost:8001';
 const AI_BACKEND_WS_URL = process.env.AI_BACKEND_WS_URL || AI_BACKEND_URL.replace(/^http(s?):\/\//i, 'ws$1://') + '/ws/node_server';
 let aiWebSocket = null;
 
