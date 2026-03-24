@@ -13,6 +13,11 @@ const VideoCall = ({
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isCallActive, setIsCallActive] = useState(false);
+  const participantsRef = useRef(participants);
+  
+  useEffect(() => {
+    participantsRef.current = participants;
+  }, [participants]);
   
   const audioContextRef = useRef();
   const analyserRef = useRef();
@@ -21,10 +26,18 @@ const VideoCall = ({
   const audioIntervalRef = useRef();
 
   // WebRTC configuration
+  const optionalTurnUrl = process.env.REACT_APP_TURN_URL;
+  const optionalTurnUsername = process.env.REACT_APP_TURN_USERNAME;
+  const optionalTurnCredential = process.env.REACT_APP_TURN_CREDENTIAL;
   const rtcConfig = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
+      { urls: 'stun:stun1.l.google.com:19302' },
+      ...(optionalTurnUrl ? [{
+        urls: optionalTurnUrl,
+        username: optionalTurnUsername,
+        credential: optionalTurnCredential
+      }] : [])
     ]
   };
 
@@ -106,17 +119,20 @@ const VideoCall = ({
 
     // Handle remote stream
     peerConnectionRef.current.ontrack = (event) => {
-      if (remoteVideoRef.current) {
+      console.log('Received remote track', event.track.kind);
+      if (remoteVideoRef.current && event.streams && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
         setIsCallActive(true);
+        // Ensure video is played
+        remoteVideoRef.current.play().catch(e => console.error("Video play failed:", e));
       }
     };
 
     // Handle ICE candidates
     peerConnectionRef.current.onicecandidate = (event) => {
       if (event.candidate && socket) {
-        // Send to all participants
-        participants.forEach(participant => {
+        // Send using the ref to ensure latest state in closure
+        participantsRef.current.forEach(participant => {
           socket.emit('ice-candidate', {
             candidate: event.candidate,
             target: participant.socketId
@@ -174,6 +190,7 @@ const VideoCall = ({
 
   const handleIceCandidate = async (data) => {
     try {
+      if (!peerConnectionRef.current || !data?.candidate) return;
       await peerConnectionRef.current.addIceCandidate(data.candidate);
     } catch (error) {
       console.error('Error handling ICE candidate:', error);
@@ -283,6 +300,11 @@ const VideoCall = ({
     }
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
+    }
+    if (socket) {
+      socket.off('offer');
+      socket.off('answer');
+      socket.off('ice-candidate');
     }
   };
 

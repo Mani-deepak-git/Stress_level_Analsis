@@ -467,10 +467,11 @@ async def test_dummy_analysis():
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
+    import os
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=int(os.environ.get("PORT", 8001)),
         reload=True,
         log_level="info"
     )

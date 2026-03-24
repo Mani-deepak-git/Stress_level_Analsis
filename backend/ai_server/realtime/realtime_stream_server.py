@@ -288,14 +288,16 @@ async def reset_smoother():
 
 if __name__ == "__main__":
     import uvicorn
+    port = int(os.environ.get("PORT", 8002))
+    host = os.environ.get("HOST", "0.0.0.0")
     
     print("Starting Real-Time Voice Confidence Server...")
-    print(f"WebSocket endpoint: ws://localhost:8002/ws/voice-confidence")
+    print(f"WebSocket endpoint: ws://localhost:{port}/ws/voice-confidence")
     print(f"Update interval: {CONFIG['update_interval']*1000}ms")
     
     uvicorn.run(
         app,
-        host="0.0.0.0",
-        port=8002,
+        host=host,
+        port=port,
         log_level="info"
     )

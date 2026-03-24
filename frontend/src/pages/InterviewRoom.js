@@ -8,6 +8,9 @@ import AlertContainer from '../components/AlertNotification';
 import InterviewSummary from '../components/InterviewSummary';
 import './InterviewRoom.css';
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = '69420';
+axios.defaults.withCredentials = true;
+
 const InterviewRoom = () => {
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
@@ -32,7 +35,13 @@ const InterviewRoom = () => {
   const localStreamRef = useRef();
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3000');
+    const signalingUrl = process.env.REACT_APP_SIGNALING_URL || process.env.REACT_APP_NODE_SERVER_URL || window.location.origin;
+    const newSocket = io(signalingUrl, {
+      withCredentials: true,
+      extraHeaders: {
+        "ngrok-skip-browser-warning": "69420"
+      }
+    });
     setSocket(newSocket);
     
     // Expose socket globally for voice confidence tracking
@@ -94,7 +103,8 @@ const InterviewRoom = () => {
 
   const startSession = async () => {
     try {
-      await axios.post('http://localhost:3000/api/session/start', {
+      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
+      await axios.post(`${nodeServerUrl}/api/session/start`, {
         session_id: roomId,
         interviewer: userName,
         interviewee: 'Candidate'
@@ -107,7 +117,8 @@ const InterviewRoom = () => {
 
   const endSession = async () => {
     try {
-      await axios.post('http://localhost:3000/api/session/end', {
+      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
+      await axios.post(`${nodeServerUrl}/api/session/end`, {
         session_id: roomId
       });
       setShowSummary(true);

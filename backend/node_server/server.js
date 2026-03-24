@@ -8,10 +8,12 @@ const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const server = http.createServer(app);
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const allowedOrigin = FRONTEND_URL || true;
 
 // CORS configuration
 app.use(cors({
-    origin: ["http://localhost:3001", "http://localhost:3000"],
+    origin: allowedOrigin,
     credentials: true
 }));
 
@@ -21,7 +23,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Socket.IO setup
 const io = socketIo(server, {
     cors: {
-        origin: ["http://localhost:3001", "http://localhost:3000"],
+        origin: allowedOrigin,
         methods: ["GET", "POST"],
         credentials: true
     },
@@ -29,7 +31,8 @@ const io = socketIo(server, {
 });
 
 // AI Backend connection
-const AI_BACKEND_URL = 'http://localhost:8001';
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || 'http://127.0.0.1:8001';
+const AI_BACKEND_WS_URL = process.env.AI_BACKEND_WS_URL || AI_BACKEND_URL.replace(/^http(s?):\/\//i, 'ws$1://') + '/ws/node_server';
 let aiWebSocket = null;
 
 // Room management
@@ -40,7 +43,7 @@ const userNames = new Map(); // Store user names
 // Connect to AI backend WebSocket
 function connectToAIBackend() {
     try {
-        aiWebSocket = new WebSocket(`ws://localhost:8001/ws/node_server`);
+        aiWebSocket = new WebSocket(AI_BACKEND_WS_URL);
         
         aiWebSocket.on('open', () => {
             console.log('Connected to AI backend');
@@ -425,6 +428,11 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`WebRTC server running on port ${PORT}`);
     console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`AI backend HTTP: ${AI_BACKEND_URL}`);
+    console.log(`AI backend WS: ${AI_BACKEND_WS_URL}`);
+    if (FRONTEND_URL) {
+        console.log(`Allowed frontend origin: ${FRONTEND_URL}`);
+    }
 });
 
 // Graceful shutdown

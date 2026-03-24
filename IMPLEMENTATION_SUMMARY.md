@@ -392,4 +392,28 @@ For issues or questions:
 
 ---
 
+## 🌍 Ngrok Deployment
+
+The system has been updated to support straightforward deployment via **ngrok**, allowing you to expose your local servers to the internet securely. 
+
+### Steps for Ngrok Setup:
+
+1. **Start Local Servers**: Start your frontend, Node.js server, and both AI Python servers as usual.
+2. **Start Ngrok Tunnels**: You will need to expose the three backend servers. Open three separate terminals and run:
+   ```bash
+   ngrok http 3000  # For Node.js Server
+   ngrok http 8001  # For AI Server 
+   ngrok http 8002  # For Voice Confidence Server
+   ```
+3. **Configure Frontend Environment Variables**:
+   In the `frontend/` directory, copy `.env.example` to `.env` and fill in the newly generated ngrok URLs:
+   ```env
+   REACT_APP_NODE_SERVER_URL=https://<your-node-ngrok-url>.ngrok-free.app
+   REACT_APP_AI_SERVER_URL=https://<your-ai-ngrok-url>.ngrok-free.app
+   REACT_APP_VOICE_WS_URL=wss://<your-voice-ngrok-url>.ngrok-free.app/ws/voice-confidence
+   ```
+   *(Note: Ensure you use `wss://` for the WebSocket URL.)*
+4. **Restart Frontend**: Restart the React development server (`npm start`) so it picks up the new `.env` variables.
+5. **Share the Link**: Your frontend can now be accessed either via its own ngrok tunnel (`ngrok http 3001`) or locally, and it will properly communicate with the remote ngrok backend endpoints. HTTPS is automatically supported, which fulfills browser requirements for accessing the user's webcam and microphone!
+
 **All features successfully implemented and tested!** 🎉

@@ -11,7 +11,14 @@ const StressAnalytics = ({ stressData, onReset }) => {
 
   // WebSocket for voice confidence
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8002/ws/voice-confidence');
+    const configuredVoiceWs = process.env.REACT_APP_VOICE_WS_URL;
+    const configuredNodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const fallbackWsUrl = configuredNodeServerUrl
+      ? configuredNodeServerUrl.replace(/^http(s?):/i, 'ws$1:') + '/ws/voice-confidence'
+      : `${wsProtocol}//${window.location.host}/ws/voice-confidence`;
+    const wsUrl = configuredVoiceWs || fallbackWsUrl;
+    const ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
       setWsConnected(true);
