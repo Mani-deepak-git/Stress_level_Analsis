@@ -19,19 +19,25 @@ services:
     name: interview-ai
     env: python
     rootDir: backend/ai_server
-    buildCommand: pip install -r ../../requirements.txt
+    buildCommand: python -m pip install --upgrade pip setuptools wheel && pip install -r ../../requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     plan: free
     autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.13
 
   - type: web
     name: interview-voice
     env: python
     rootDir: backend/ai_server/realtime
-    buildCommand: pip install -r ../../../requirements.txt
+    buildCommand: python -m pip install --upgrade pip setuptools wheel && pip install -r ../../../requirements.txt
     startCommand: python realtime_stream_server.py
     plan: free
     autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.13
 
   - type: web
     name: interview-frontend
