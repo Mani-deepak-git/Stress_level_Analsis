@@ -17,11 +17,6 @@ import os
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from realtime.live_audio_capture import LiveAudioCapture
-from realtime.live_feature_extractor import LiveFeatureExtractor
-from realtime.real_time_inference import RealTimeInference
-from realtime.confidence_smoother import ConfidenceSmoother
-
 app = FastAPI(title="Real-Time Voice Confidence API")
 
 # CORS
@@ -38,6 +33,7 @@ audio_capture = None
 feature_extractor = None
 inference_engine = None
 smoother = None
+fallback_mode = False
 
 # Active WebSocket connections
 active_connections: List[WebSocket] = []
@@ -58,37 +54,48 @@ def initialize_components():
     Initialize all components
     Why: Sets up the complete pipeline
     """
-    global audio_capture, feature_extractor, inference_engine, smoother
+    global audio_capture, feature_extractor, inference_engine, smoother, fallback_mode
     
     print("Initializing real-time voice confidence system...")
     
-    # Audio capture
-    audio_capture = LiveAudioCapture(
-        sample_rate=CONFIG['sample_rate'],
-        window_duration=CONFIG['window_duration'],
-        overlap=CONFIG['overlap']
-    )
-    
-    # Feature extractor
-    feature_extractor = LiveFeatureExtractor(
-        sample_rate=CONFIG['sample_rate'],
-        scaler_path=CONFIG['scaler_path']
-    )
-    
-    # Inference engine
-    inference_engine = RealTimeInference(
-        model_path=CONFIG['model_path'],
-        device='cpu'
-    )
-    
-    # Smoother
-    smoother = ConfidenceSmoother(
-        window_size=5,
-        method='ema',
-        alpha=0.3
-    )
-    
-    print("All components initialized successfully")
+    try:
+        from realtime.live_audio_capture import LiveAudioCapture
+        from realtime.live_feature_extractor import LiveFeatureExtractor
+        from realtime.real_time_inference import RealTimeInference
+        from realtime.confidence_smoother import ConfidenceSmoother
+
+        # Audio capture
+        audio_capture = LiveAudioCapture(
+            sample_rate=CONFIG['sample_rate'],
+            window_duration=CONFIG['window_duration'],
+            overlap=CONFIG['overlap']
+        )
+
+        # Feature extractor
+        feature_extractor = LiveFeatureExtractor(
+            sample_rate=CONFIG['sample_rate'],
+            scaler_path=CONFIG['scaler_path']
+        )
+
+        # Inference engine
+        inference_engine = RealTimeInference(
+            model_path=CONFIG['model_path'],
+            device='cpu'
+        )
+
+        # Smoother
+        smoother = ConfidenceSmoother(
+            window_size=5,
+            method='ema',
+            alpha=0.3
+        )
+        fallback_mode = False
+        print("All components initialized successfully")
+    except Exception as e:
+        # Cloud providers usually have no microphone/PortAudio. Keep service alive
+        # and emit neutral heartbeat values so the frontend websocket remains usable.
+        fallback_mode = True
+        print(f"Realtime components unavailable, starting in fallback mode: {e}")
 
 
 async def process_audio_stream():
@@ -98,6 +105,20 @@ async def process_audio_stream():
     """
     while True:
         try:
+            if fallback_mode:
+                neutral_data = {
+                    'timestamp': int(time.time() * 1000),
+                    'confidence': 50.0,
+                    'stress_level': 'Low Stress',
+                    'stress_class': 0,
+                    'probabilities': [0.7, 0.2, 0.1],
+                    'raw_confidence': 50.0,
+                    'mode': 'fallback'
+                }
+                await broadcast_data(neutral_data)
+                await asyncio.sleep(CONFIG['update_interval'])
+                continue
+
             # Get audio window
             audio = audio_capture.get_audio_window()
             
@@ -162,8 +183,9 @@ async def startup_event():
     """Initialize components on startup"""
     initialize_components()
     
-    # Start audio capture
-    audio_capture.start_capture()
+    # Start audio capture only when running full realtime pipeline
+    if audio_capture and not fallback_mode:
+        audio_capture.start_capture()
     
     # Start processing loop
     asyncio.create_task(process_audio_stream())
@@ -174,7 +196,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    if audio_capture:
+    if audio_capture and not fallback_mode:
         audio_capture.stop_capture()
     print("Server shutdown")
 
@@ -200,6 +222,7 @@ async def health():
             "inference_engine": inference_engine is not None,
             "smoother": smoother is not None
         },
+        "fallback_mode": fallback_mode,
         "config": CONFIG,
         "active_connections": len(active_connections)
     }
