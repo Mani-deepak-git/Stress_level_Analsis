@@ -35,7 +35,7 @@ python-dotenv>=1.0.0
 pydantic>=2.5.0
 
 # Audio Feature Extraction
-wave>=0.0.2
+# NOTE: Python's built-in `wave` module is used; no pip package needed.
 
 # PDF Generation & Reporting
 reportlab>=4.0.0
