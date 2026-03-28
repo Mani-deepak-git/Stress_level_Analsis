@@ -40,8 +40,14 @@ const userNames = new Map(); // Store user names
 // Connect to AI backend WebSocket
 function connectToAIBackend() {
     try {
-        const wsUrl = (AI_BACKEND_URL || 'http://127.0.0.1:8001').replace(/^http/, 'ws');
-        aiWebSocket = new WebSocket(`${wsUrl}/ws/node_server`);
+        const wsUrl = (AI_BACKEND_URL || 'http://127.0.0.1:8001').replace(/^https/, 'wss').replace(/^http/, 'ws');
+        const wsEndpoint = `${wsUrl}/ws/node_server`;
+        console.log(`Connecting to AI backend WebSocket: ${wsEndpoint}`);
+        aiWebSocket = new WebSocket(wsEndpoint, {
+            headers: {
+                'Origin': process.env.NODE_SERVER_URL || 'https://interview-node-server.onrender.com'
+            }
+        });
         
         aiWebSocket.on('open', () => {
             console.log('Connected to AI backend');

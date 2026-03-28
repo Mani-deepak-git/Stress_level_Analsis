@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Interview Stress Analysis API", version="1.0.0")
 
-# CORS middleware
+# CORS middleware - allow all origins including Render services
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
