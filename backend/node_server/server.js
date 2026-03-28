@@ -63,12 +63,13 @@ function connectToAIBackend() {
         });
         
         aiWebSocket.on('close', () => {
-            console.log('AI backend connection closed. Reconnecting...');
-            setTimeout(connectToAIBackend, 5000);
+            console.log('AI backend connection closed. Reconnecting in 10s...');
+            setTimeout(connectToAIBackend, 10000);
         });
         
         aiWebSocket.on('error', (error) => {
-            console.error('AI backend WebSocket error:', error);
+            console.error('AI backend WebSocket error:', error.message);
+            // Don't crash on error, reconnect will handle it
         });
         
     } catch (error) {

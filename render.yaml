@@ -19,7 +19,7 @@ services:
     startCommand: node server.js
     envVars:
       - key: NODE_VERSION
-        value: 18.0.0
+        value: 20.0.0
       - key: AI_BACKEND_URL
         value: https://interview-ai-backend-n8vf.onrender.com
       - key: NODE_SERVER_URL
