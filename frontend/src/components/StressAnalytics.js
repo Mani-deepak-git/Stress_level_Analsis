@@ -7,8 +7,6 @@ const StressAnalytics = ({ stressData, onReset }) => {
   const [currentAnalysis, setCurrentAnalysis] = useState(null);
   const [voiceConfidence, setVoiceConfidence] = useState(null);
   const [voiceHistory, setVoiceHistory] = useState([]);
-  const [wsConnected, setWsConnected] = useState(false);
-
   // WebSocket for voice confidence
   useEffect(() => {
     // Auto-adapt to current proxy host (wss:// for ngrok https, ws:// for local http)
@@ -47,8 +45,8 @@ const StressAnalytics = ({ stressData, onReset }) => {
       }
     };
     
-    ws.onerror = () => setWsConnected(false);
-    ws.onclose = () => setWsConnected(false);
+    ws.onerror = () => {};
+    ws.onclose = () => {};
     
     return () => ws.close();
   }, []);

@@ -99,6 +99,7 @@ const InterviewRoom = () => {
       newSocket.disconnect();
       window.interviewSocket = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, role, userName]);
 
   const startSession = async () => {

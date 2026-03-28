@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './InterviewSummary.css';
 
@@ -7,13 +7,10 @@ const InterviewSummary = ({ sessionId, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => {
-    fetchSummary();
-  }, [sessionId]);
-
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/session/${sessionId}/summary`);
+      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
+      const response = await axios.get(`${nodeServerUrl}/api/session/${sessionId}/summary`);
       if (response.data.success) {
         setSummary(response.data.summary);
       }
@@ -22,13 +19,18 @@ const InterviewSummary = ({ sessionId, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionId]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
   const downloadPDF = async () => {
     setDownloading(true);
     try {
+      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
       const response = await axios.get(
-        `http://localhost:3000/api/session/${sessionId}/export-pdf`,
+        `${nodeServerUrl}/api/session/${sessionId}/export-pdf`,
         { responseType: 'blob' }
       );
       
