@@ -5,7 +5,12 @@ import librosa
 import pickle
 import os
 from collections import deque
-import mediapipe as mp
+# MediaPipe face detection with version compatibility
+try:
+    import mediapipe as mp
+    _MP_SOLUTIONS = hasattr(mp, 'solutions')
+except ImportError:
+    _MP_SOLUTIONS = False
 from models.face_model import FaceStressCNN
 from models.voice_model import VoiceStressLSTM
 from models.fusion_model import MultimodalFusionModel
@@ -27,10 +32,23 @@ class RealTimeStressAnalyzer:
         self.use_fusion = self._try_load_fusion_model()
         self.audio_scaler = self._load_audio_scaler()
         
-        # MediaPipe face detection
-        self.mp_face_detection = mp.solutions.face_detection
-        self.face_detection = self.mp_face_detection.FaceDetection(
-            model_selection=0, min_detection_confidence=0.5
+        # MediaPipe face detection with version compatibility
+        self.face_detection = None
+        if _MP_SOLUTIONS:
+            try:
+                self.mp_face_detection = mp.solutions.face_detection
+                self.face_detection = self.mp_face_detection.FaceDetection(
+                    model_selection=0, min_detection_confidence=0.5
+                )
+                print("MediaPipe face detection loaded (solutions API)")
+            except Exception as e:
+                print(f"MediaPipe solutions API failed: {e}, falling back to OpenCV")
+                self.face_detection = None
+        else:
+            print("MediaPipe solutions not available, using OpenCV face detection")
+        # Always init OpenCV cascade as fallback
+        self.face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         )
         
         # Audio processing parameters
@@ -123,44 +141,50 @@ class RealTimeStressAnalyzer:
         print("Audio scaler loaded successfully")
         return scaler
     
+    def _extract_face_region(self, frame):
+        """Extract face region using MediaPipe or OpenCV fallback"""
+        h, w, _ = frame.shape
+
+        if self.face_detection is not None:
+            # Use MediaPipe
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = self.face_detection.process(rgb_frame)
+            if results.detections:
+                detection = results.detections[0]
+                bbox = detection.location_data.relative_bounding_box
+                x = max(0, int(bbox.xmin * w))
+                y = max(0, int(bbox.ymin * h))
+                fw = int(bbox.width * w)
+                fh = int(bbox.height * h)
+                return frame[y:y+fh, x:x+fw]
+        else:
+            # OpenCV fallback
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = self.face_cascade.detectMultiScale(gray, 1.1, 4, minSize=(30, 30))
+            if len(faces) > 0:
+                x, y, fw, fh = faces[0]
+                return frame[y:y+fh, x:x+fw]
+        return None
+
     def preprocess_face_frame(self, frame):
         """Preprocess face frame for model input"""
         try:
-            # Convert BGR to RGB
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            # Detect face
-            results = self.face_detection.process(rgb_frame)
-            
-            if results.detections:
-                # Get first detected face
-                detection = results.detections[0]
-                bbox = detection.location_data.relative_bounding_box
-                
-                h, w, _ = frame.shape
-                x = int(bbox.xmin * w)
-                y = int(bbox.ymin * h)
-                width = int(bbox.width * w)
-                height = int(bbox.height * h)
-                
-                # Extract face region
-                face_region = frame[y:y+height, x:x+width]
-                
-                if face_region.size > 0:
-                    # Convert to grayscale and resize
-                    gray_face = cv2.cvtColor(face_region, cv2.COLOR_BGR2GRAY)
-                    resized_face = cv2.resize(gray_face, (48, 48))
-                    
-                    # Normalize
-                    normalized_face = resized_face.astype(np.float32) / 255.0
-                    
-                    # Add batch and channel dimensions
-                    face_tensor = torch.FloatTensor(normalized_face).unsqueeze(0).unsqueeze(0)
-                    
-                    return face_tensor.to(self.device)
-            
+            face_region = self._extract_face_region(frame)
+
+            if face_region is not None and face_region.size > 0:
+                # Convert to grayscale and resize
+                gray_face = cv2.cvtColor(face_region, cv2.COLOR_BGR2GRAY)
+                resized_face = cv2.resize(gray_face, (48, 48))
+
+                # Normalize
+                normalized_face = resized_face.astype(np.float32) / 255.0
+
+                # Add batch and channel dimensions
+                face_tensor = torch.FloatTensor(normalized_face).unsqueeze(0).unsqueeze(0)
+                return face_tensor.to(self.device)
+
             return None
-            
+
         except Exception as e:
             print(f"Error preprocessing face frame: {e}")
             return None
