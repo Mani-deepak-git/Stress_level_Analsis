@@ -8,6 +8,9 @@ import AlertContainer from '../components/AlertNotification';
 import InterviewSummary from '../components/InterviewSummary';
 import './InterviewRoom.css';
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = '69420';
+axios.defaults.withCredentials = true;
+
 const InterviewRoom = () => {
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
@@ -32,13 +35,12 @@ const InterviewRoom = () => {
   const localStreamRef = useRef();
 
   useEffect(() => {
-    const signalingUrl = process.env.REACT_APP_SIGNALING_URL || process.env.REACT_APP_NODE_SERVER_URL || window.location.origin;
-    const newSocket = io(signalingUrl, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      timeout: 20000
+    const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
+    const newSocket = io(nodeServerUrl, {
+      withCredentials: true,
+      extraHeaders: {
+        "ngrok-skip-browser-warning": "69420"
+      }
     });
     setSocket(newSocket);
     
@@ -57,11 +59,6 @@ const InterviewRoom = () => {
 
     newSocket.on('disconnect', () => {
       setIsConnected(false);
-    });
-
-    newSocket.on('connect_error', (error) => {
-      setIsConnected(false);
-      console.error('Socket connection error:', error.message);
     });
 
     newSocket.on('user-joined', (data) => {
@@ -106,7 +103,7 @@ const InterviewRoom = () => {
 
   const startSession = async () => {
     try {
-      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || process.env.REACT_APP_SIGNALING_URL || window.location.origin;
+      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
       await axios.post(`${nodeServerUrl}/api/session/start`, {
         session_id: roomId,
         interviewer: userName,
@@ -120,7 +117,7 @@ const InterviewRoom = () => {
 
   const endSession = async () => {
     try {
-      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || process.env.REACT_APP_SIGNALING_URL || window.location.origin;
+      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
       await axios.post(`${nodeServerUrl}/api/session/end`, {
         session_id: roomId
       });

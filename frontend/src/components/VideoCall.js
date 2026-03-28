@@ -26,18 +26,10 @@ const VideoCall = ({
   const audioIntervalRef = useRef();
 
   // WebRTC configuration
-  const optionalTurnUrl = process.env.REACT_APP_TURN_URL;
-  const optionalTurnUsername = process.env.REACT_APP_TURN_USERNAME;
-  const optionalTurnCredential = process.env.REACT_APP_TURN_CREDENTIAL;
   const rtcConfig = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      ...(optionalTurnUrl ? [{
-        urls: optionalTurnUrl,
-        username: optionalTurnUsername,
-        credential: optionalTurnCredential
-      }] : [])
+      { urls: 'stun:stun1.l.google.com:19302' }
     ]
   };
 
@@ -190,7 +182,6 @@ const VideoCall = ({
 
   const handleIceCandidate = async (data) => {
     try {
-      if (!peerConnectionRef.current || !data?.candidate) return;
       await peerConnectionRef.current.addIceCandidate(data.candidate);
     } catch (error) {
       console.error('Error handling ICE candidate:', error);

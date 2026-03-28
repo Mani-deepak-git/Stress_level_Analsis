@@ -1,73 +1,43 @@
 # Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
 ai_env/
-venv/
-env/
-ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
 *.egg-info/
 dist/
 build/
-*.egg
+.eggs/
 
-# Datasets (too large for GitHub)
-datasets/fer2013/
-datasets/ravdess/
-datasets/*/preprocessed/
-*.csv
-*.wav
-*.mp3
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
 
-# Trained Models (too large for GitHub)
-models/trained/*.pth
-models/trained/*.pkl
-*.h5
-*.ckpt
-
-# Node modules
+# Node
 node_modules/
-package-lock.json
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Build outputs
+# React build
 frontend/build/
-frontend/.next/
-frontend/out/
 
-# Temporary files
-*.tmp
-*.temp
-.cache/
+# Datasets (too large for git)
+datasets/
 
-# Audio/Video test files
-*.mp4
-*.avi
-*.mov
-test_videos/
-test_audio/
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Keep model files tracked (needed for deployment)
+# models/trained/*.pth

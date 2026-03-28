@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './InterviewSummary.css';
 
-axios.defaults.headers.common['ngrok-skip-browser-warning'] = '69420';
-axios.defaults.withCredentials = true;
-
 const InterviewSummary = ({ sessionId, onClose }) => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,8 +13,7 @@ const InterviewSummary = ({ sessionId, onClose }) => {
 
   const fetchSummary = async () => {
     try {
-      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
-      const response = await axios.get(`${nodeServerUrl}/api/session/${sessionId}/summary`);
+      const response = await axios.get(`http://localhost:3000/api/session/${sessionId}/summary`);
       if (response.data.success) {
         setSummary(response.data.summary);
       }
@@ -32,7 +28,7 @@ const InterviewSummary = ({ sessionId, onClose }) => {
     setDownloading(true);
     try {
       const response = await axios.get(
-        `/api/session/${sessionId}/export-pdf`,
+        `http://localhost:3000/api/session/${sessionId}/export-pdf`,
         { responseType: 'blob' }
       );
       

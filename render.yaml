@@ -1,61 +1,24 @@
 services:
+  # AI Backend (FastAPI + PyTorch LSTM/CNN)
   - type: web
-    name: interview-node
-    env: node
+    name: interview-ai-backend
+    runtime: python
+    rootDir: backend/ai_server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+
+  # Node.js WebRTC + Socket.IO Server
+  - type: web
+    name: interview-node-server
+    runtime: node
     rootDir: backend/node_server
     buildCommand: npm install
-    startCommand: npm start
-    plan: free
-    autoDeploy: true
+    startCommand: node server.js
     envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
       - key: AI_BACKEND_URL
-        sync: false
-      - key: AI_BACKEND_WS_URL
-        sync: false
-      - key: FRONTEND_URL
-        sync: false
-
-  - type: web
-    name: interview-ai
-    env: python
-    rootDir: backend/ai_server
-    buildCommand: python -m pip install --upgrade pip setuptools wheel && pip install -r ../../requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    plan: free
-    autoDeploy: true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.13
-
-  - type: web
-    name: interview-voice
-    env: python
-    rootDir: backend/ai_server/realtime
-    buildCommand: python -m pip install --upgrade pip setuptools wheel && pip install -r ../../../requirements.txt
-    startCommand: python realtime_stream_server.py
-    plan: free
-    autoDeploy: true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.13
-
-  - type: web
-    name: interview-frontend
-    env: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: build
-    pullRequestPreviewsEnabled: false
-    envVars:
-      - key: REACT_APP_SIGNALING_URL
-        sync: false
-      - key: REACT_APP_NODE_SERVER_URL
-        sync: false
-      - key: REACT_APP_VOICE_WS_URL
-        sync: false
-      - key: REACT_APP_TURN_URL
-        sync: false
-      - key: REACT_APP_TURN_USERNAME
-        sync: false
-      - key: REACT_APP_TURN_CREDENTIAL
-        sync: false
+        value: https://interview-ai-backend.onrender.com

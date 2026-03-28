@@ -13,7 +13,11 @@ from models.fusion_model import MultimodalFusionModel
 class RealTimeStressAnalyzer:
     """Real-time stress and confidence analyzer"""
     
-    def __init__(self, models_dir="../../models/trained", device='cpu'):
+    def __init__(self, models_dir=None, device='cpu'):
+        import os
+        if models_dir is None:
+            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            models_dir = os.path.join(base, 'models', 'trained')
         self.device = device
         self.models_dir = models_dir
         
@@ -106,7 +110,9 @@ class RealTimeStressAnalyzer:
     
     def _load_audio_scaler(self):
         """Load audio feature scaler"""
-        scaler_path = "../../datasets/ravdess/preprocessed/scaler.pkl"
+        import os
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        scaler_path = os.path.join(base, 'datasets', 'ravdess', 'preprocessed', 'scaler.pkl')
         if not os.path.exists(scaler_path):
             print("WARNING: Audio scaler not found. Using default normalization.")
             return None

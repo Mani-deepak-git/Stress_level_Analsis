@@ -86,7 +86,6 @@ pip install -r requirements.txt
 # Install additional dependencies for new features
 pip install reportlab>=4.0.0 SpeechRecognition>=3.10.0 pydub>=0.25.1 sounddevice>=0.4.6
 ```
-
 ### 3. Download Datasets (Optional - for training)
 
 If you want to train models from scratch:
@@ -193,31 +192,6 @@ To allow someone else to join your interview room over the internet, you can exp
 
 4. **Share your app**:
    You can either expose the frontend on ngrok (`ngrok http 3001`) or have the interviewer access the app through localhost. The interviewee can join via the shared frontend ngrok link. They will be required to give microphone/camera permissions since ngrok provides secure HTTPS automatically!
-
-### 9. Deploy on Render (Recommended)
-
-For stable interviewer/interviewee connectivity, deploy each service on Render and configure explicit frontend URLs.
-
-1. **Deploy services**:
-   - Node signaling/API server (`backend/node_server/server.js`)
-   - AI backend (`backend/ai_server/main.py`)
-   - Voice confidence WS server (`backend/ai_server/realtime/realtime_stream_server.py`)
-   - Frontend static site (`frontend`)
-
-2. **Set Node service environment variables**:
-   - `AI_BACKEND_URL=https://<ai-service>.onrender.com`
-   - `AI_BACKEND_WS_URL=wss://<ai-service>.onrender.com/ws/node_server` (optional; auto-derived if omitted)
-   - `FRONTEND_URL=https://<frontend-service>.onrender.com`
-
-3. **Set Frontend environment variables** (see `frontend/render.env.example`):
-   - `REACT_APP_SIGNALING_URL=https://<node-service>.onrender.com`
-   - `REACT_APP_NODE_SERVER_URL=https://<node-service>.onrender.com`
-   - `REACT_APP_VOICE_WS_URL=wss://<voice-service>.onrender.com/ws/voice-confidence`
-   - Optional TURN: `REACT_APP_TURN_URL`, `REACT_APP_TURN_USERNAME`, `REACT_APP_TURN_CREDENTIAL`
-
-4. **Important WebRTC note**:
-   - The **Call** button is disabled until another participant joins the same room.
-   - For internet users behind strict NAT/firewalls, configure a TURN server (the optional env vars above) to prevent random disconnects.
 
 ## 🎯 New Features
 

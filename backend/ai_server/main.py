@@ -468,10 +468,11 @@ async def test_dummy_analysis():
 
 if __name__ == "__main__":
     import os
+    port = int(os.environ.get("PORT", 8001))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8001)),
-        reload=True,
+        port=port,
+        reload=False,
         log_level="info"
     )
