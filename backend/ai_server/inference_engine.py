@@ -5,12 +5,6 @@ import librosa
 import pickle
 import os
 from collections import deque
-# MediaPipe face detection with version compatibility
-try:
-    import mediapipe as mp
-    _MP_SOLUTIONS = hasattr(mp, 'solutions')
-except ImportError:
-    _MP_SOLUTIONS = False
 from models.face_model import FaceStressCNN
 from models.voice_model import VoiceStressLSTM
 from models.fusion_model import MultimodalFusionModel
@@ -32,24 +26,11 @@ class RealTimeStressAnalyzer:
         self.use_fusion = self._try_load_fusion_model()
         self.audio_scaler = self._load_audio_scaler()
         
-        # MediaPipe face detection with version compatibility
-        self.face_detection = None
-        if _MP_SOLUTIONS:
-            try:
-                self.mp_face_detection = mp.solutions.face_detection
-                self.face_detection = self.mp_face_detection.FaceDetection(
-                    model_selection=0, min_detection_confidence=0.5
-                )
-                print("MediaPipe face detection loaded (solutions API)")
-            except Exception as e:
-                print(f"MediaPipe solutions API failed: {e}, falling back to OpenCV")
-                self.face_detection = None
-        else:
-            print("MediaPipe solutions not available, using OpenCV face detection")
-        # Always init OpenCV cascade as fallback
+        # OpenCV face detection (reliable cross-platform)
         self.face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         )
+        print("OpenCV face detection initialized")
         
         # Audio processing parameters
         self.sample_rate = 16000
@@ -142,28 +123,12 @@ class RealTimeStressAnalyzer:
         return scaler
     
     def _extract_face_region(self, frame):
-        """Extract face region using MediaPipe or OpenCV fallback"""
-        h, w, _ = frame.shape
-
-        if self.face_detection is not None:
-            # Use MediaPipe
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = self.face_detection.process(rgb_frame)
-            if results.detections:
-                detection = results.detections[0]
-                bbox = detection.location_data.relative_bounding_box
-                x = max(0, int(bbox.xmin * w))
-                y = max(0, int(bbox.ymin * h))
-                fw = int(bbox.width * w)
-                fh = int(bbox.height * h)
-                return frame[y:y+fh, x:x+fw]
-        else:
-            # OpenCV fallback
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = self.face_cascade.detectMultiScale(gray, 1.1, 4, minSize=(30, 30))
-            if len(faces) > 0:
-                x, y, fw, fh = faces[0]
-                return frame[y:y+fh, x:x+fw]
+        """Extract face region using OpenCV Haar Cascade"""
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = self.face_cascade.detectMultiScale(gray, 1.1, 4, minSize=(30, 30))
+        if len(faces) > 0:
+            x, y, fw, fh = faces[0]
+            return frame[y:y+fh, x:x+fw]
         return None
 
     def preprocess_face_frame(self, frame):
