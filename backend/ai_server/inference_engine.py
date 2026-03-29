@@ -34,8 +34,8 @@ class RealTimeStressAnalyzer:
         
         # Audio processing parameters
         self.sample_rate = 16000
-        self.audio_buffer = deque(maxlen=int(5 * 44100))  # 5 seconds at browser sample rate
-        self.min_audio_samples = int(2 * 44100)  # 2 seconds at browser sample rate
+        self.audio_buffer = deque(maxlen=int(4 * 44100))  # 4 seconds at browser sample rate
+        self.min_audio_samples = int(1 * 44100)  # 1 second min - faster response
         
         # Temporal smoothing
         self.stress_history = deque(maxlen=5)  # Last 5 predictions

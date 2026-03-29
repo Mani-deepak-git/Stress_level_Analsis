@@ -192,7 +192,7 @@ const VideoCall = ({
   const startFrameCapture = () => {
     frameIntervalRef.current = setInterval(() => {
       captureAndSendFrame();
-    }, 2000); // Send frame every 2 seconds
+    }, 4000); // Send frame every 4 seconds - reduces server load on free tier
   };
 
   const captureAndSendFrame = () => {
@@ -202,13 +202,13 @@ const VideoCall = ({
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      canvas.width = 640;
-      canvas.height = 480;
+      canvas.width = 320; // Reduced from 640 - faster transfer
+      canvas.height = 240; // Reduced from 480 - faster transfer
       
       ctx.drawImage(localVideoRef.current, 0, 0, canvas.width, canvas.height);
       
-      // Convert to base64
-      const frameData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+      // Convert to base64 with lower quality for faster transfer
+      const frameData = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
       
       socket.emit('video-frame', {
         frame: frameData,
@@ -222,7 +222,7 @@ const VideoCall = ({
   const startAudioCapture = () => {
     audioIntervalRef.current = setInterval(() => {
       captureAndSendAudio();
-    }, 1000); // Send audio every 1 second
+    }, 3000); // Send audio every 3 seconds - reduces server load
   };
 
   const captureAndSendAudio = () => {

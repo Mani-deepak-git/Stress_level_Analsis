@@ -417,13 +417,18 @@ async def get_session_summary(session_id: str):
 
 @app.post("/session/{session_id}/export-pdf")
 async def export_session_pdf(session_id: str):
-    """Export session as PDF report"""
+    """Export session as PDF report - runs in thread pool to avoid blocking"""
     session = session_manager.get_completed_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     
     try:
-        pdf_path = pdf_generator.generate_report(session.get_full_data())
+        import asyncio
+        loop = asyncio.get_event_loop()
+        # Run PDF generation in thread pool to not block the event loop
+        pdf_path = await loop.run_in_executor(
+            None, pdf_generator.generate_report, session.get_full_data()
+        )
         return FileResponse(
             pdf_path,
             media_type='application/pdf',
