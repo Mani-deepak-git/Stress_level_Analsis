@@ -31,14 +31,28 @@ const io = socketIo(server, {
 // AI Backend connection
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || 'http://127.0.0.1:8001';
 let aiWebSocket = null;
+let aiReconnectTimer = null;   // single reconnect timer
+let aiConnecting = false;      // prevent parallel connect attempts
 
 // Room management
 const rooms = new Map();
 const userRoles = new Map();
 const userNames = new Map(); // Store user names
 
-// Connect to AI backend WebSocket
+// Connect to AI backend WebSocket (single connection, no runaway loops)
 function connectToAIBackend() {
+    // Prevent multiple simultaneous connection attempts
+    if (aiConnecting) return;
+    if (aiWebSocket && (aiWebSocket.readyState === WebSocket.CONNECTING || aiWebSocket.readyState === WebSocket.OPEN)) return;
+
+    // Clear any pending reconnect timer
+    if (aiReconnectTimer) {
+        clearTimeout(aiReconnectTimer);
+        aiReconnectTimer = null;
+    }
+
+    aiConnecting = true;
+
     try {
         const wsUrl = (AI_BACKEND_URL || 'http://127.0.0.1:8001').replace(/^https/, 'wss').replace(/^http/, 'ws');
         const wsEndpoint = `${wsUrl}/ws/node_server`;
@@ -48,11 +62,12 @@ function connectToAIBackend() {
                 'Origin': process.env.NODE_SERVER_URL || 'https://interview-node-server.onrender.com'
             }
         });
-        
+
         aiWebSocket.on('open', () => {
             console.log('Connected to AI backend');
+            aiConnecting = false;
         });
-        
+
         aiWebSocket.on('message', (data) => {
             try {
                 const message = JSON.parse(data);
@@ -61,20 +76,24 @@ function connectToAIBackend() {
                 console.error('Error parsing AI response:', error);
             }
         });
-        
+
         aiWebSocket.on('close', () => {
-            console.log('AI backend connection closed. Reconnecting in 10s...');
-            setTimeout(connectToAIBackend, 10000);
+            console.log('AI backend connection closed. Reconnecting in 15s...');
+            aiConnecting = false;
+            aiWebSocket = null;
+            aiReconnectTimer = setTimeout(connectToAIBackend, 15000);
         });
-        
+
         aiWebSocket.on('error', (error) => {
             console.error('AI backend WebSocket error:', error.message);
-            // Don't crash on error, reconnect will handle it
+            aiConnecting = false;
+            // close event will fire next and schedule reconnect
         });
-        
+
     } catch (error) {
         console.error('Error connecting to AI backend:', error);
-        setTimeout(connectToAIBackend, 5000);
+        aiConnecting = false;
+        aiReconnectTimer = setTimeout(connectToAIBackend, 15000);
     }
 }
 
@@ -234,8 +253,11 @@ io.on('connection', (socket) => {
         if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
             aiWebSocket.send(JSON.stringify(message));
         } else {
-            console.log('AI WebSocket not connected, attempting reconnect...');
-            connectToAIBackend();
+            // Schedule reconnect only if not already connecting/scheduled
+            if (!aiConnecting && !aiReconnectTimer) {
+                console.log('AI WebSocket not connected, scheduling reconnect...');
+                aiReconnectTimer = setTimeout(connectToAIBackend, 5000);
+            }
         }
     });
     
