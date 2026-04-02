@@ -307,7 +307,14 @@ io.on('connection', (socket) => {
     // Voice confidence data forwarding
     socket.on('voice-confidence-data', (data) => {
         const roomId = Array.from(socket.rooms).find(room => room !== socket.id);
-        
+
+        // Broadcast voice confidence to interviewer(s) in the same room
+        if (roomId && rooms.has(roomId)) {
+            rooms.get(roomId).interviewers.forEach(interviewerSocketId => {
+                io.to(interviewerSocketId).emit('voice_confidence_update', data);
+            });
+        }
+
         // Forward to AI backend for session tracking
         if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
             const message = {
