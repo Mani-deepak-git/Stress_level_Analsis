@@ -52,9 +52,9 @@ const InterviewRoom = () => {
       setIsConnected(true);
       newSocket.emit('join-room', { roomId, role, userName });
       
-      // Start session if interviewer
-      if (role === 'interviewer' && !sessionStarted) {
-        startSession();
+      // Start session if interviewer (use ref to avoid stale closure)
+      if (role === 'interviewer') {
+        startSessionWithSocket(newSocket, roomId, userName);
       }
     });
 
@@ -120,18 +120,25 @@ const InterviewRoom = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, role, userName]);
 
-  const startSession = async () => {
+  const startSessionWithSocket = async (sock, rId, uName) => {
     try {
       const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
       await axios.post(`${nodeServerUrl}/api/session/start`, {
-        session_id: roomId,
-        interviewer: userName,
+        session_id: rId,
+        interviewer: uName,
         interviewee: 'Candidate'
       });
       setSessionStarted(true);
+      console.log('Session started:', rId);
     } catch (error) {
       console.error('Error starting session:', error);
+      // Don't block — session might already exist
+      setSessionStarted(true);
     }
+  };
+
+  const startSession = async () => {
+    startSessionWithSocket(socket, roomId, userName);
   };
 
   const endSession = async () => {
@@ -140,10 +147,11 @@ const InterviewRoom = () => {
       await axios.post(`${nodeServerUrl}/api/session/end`, {
         session_id: roomId
       });
-      setShowSummary(true);
     } catch (error) {
       console.error('Error ending session:', error);
     }
+    // Always show summary regardless of API success
+    setShowSummary(true);
   };
 
   const dismissAlert = (index) => {
@@ -249,6 +257,7 @@ const InterviewRoom = () => {
             <StressAnalytics 
               stressData={stressData}
               onReset={resetAnalysis}
+              socket={socket}
             />
             {speechMetrics && (
               <div className="speech-metrics-card">

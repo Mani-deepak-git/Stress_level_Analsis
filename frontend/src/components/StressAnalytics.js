@@ -2,53 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './StressAnalytics.css';
 
-const StressAnalytics = ({ stressData, onReset }) => {
+const StressAnalytics = ({ stressData, onReset, socket }) => {
   const [historicalData, setHistoricalData] = useState([]);
   const [currentAnalysis, setCurrentAnalysis] = useState(null);
   const [voiceConfidence, setVoiceConfidence] = useState(null);
   const [voiceHistory, setVoiceHistory] = useState([]);
-  // WebSocket for voice confidence
+  // Receive voice confidence via socket (replaces broken Vercel WebSocket)
   useEffect(() => {
-    // Auto-adapt to current proxy host (wss:// for ngrok https, ws:// for local http)
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/voice-confidence`;
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      console.log('Voice confidence WebSocket connected');
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
+    if (!socket) return;
+
+    const handleVoiceConfidence = (data) => {
       if (data.confidence !== undefined) {
         setVoiceConfidence(data);
-        
-        // Send voice confidence to backend via socket for session tracking
-        if (window.interviewSocket) {
-          window.interviewSocket.emit('voice-confidence-data', {
-            confidence: data.confidence,
-            stress_level: data.stress_level,
-            timestamp: data.timestamp
-          });
-        }
-        
         setVoiceHistory(prev => {
           const newPoint = {
-            time: new Date(data.timestamp).toLocaleTimeString(),
+            time: new Date(data.timestamp || Date.now()).toLocaleTimeString(),
             confidence: data.confidence,
-            timestamp: data.timestamp
+            timestamp: data.timestamp || Date.now()
           };
           return [...prev.slice(-20), newPoint];
         });
       }
     };
-    
-    ws.onerror = () => {};
-    ws.onclose = () => {};
-    
-    return () => ws.close();
-  }, []);
+
+    socket.on('voice_confidence_update', handleVoiceConfidence);
+    return () => socket.off('voice_confidence_update', handleVoiceConfidence);
+  }, [socket]);
 
   useEffect(() => {
     if (stressData) {
