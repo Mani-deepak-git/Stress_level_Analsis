@@ -15,7 +15,6 @@ const StressAnalytics = ({ stressData, onReset }) => {
     const ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
-      setWsConnected(true);
       console.log('Voice confidence WebSocket connected');
     };
     

@@ -63,18 +63,14 @@ const VideoCall = ({
         localVideoRef.current.srcObject = stream;
       }
 
-      // Setup audio analysis for interviewees
-      if (role === 'interviewee') {
-        setupAudioAnalysis(stream);
-      }
+      // Setup audio analysis for all roles
+      setupAudioAnalysis(stream);
 
       // Setup peer connection
       setupPeerConnection();
 
-      // Start sending frames for AI analysis (interviewees only)
-      if (role === 'interviewee') {
-        startFrameCapture();
-      }
+      // Start sending frames for AI analysis (always start, server filters by role)
+      startFrameCapture();
 
     } catch (error) {
       console.error('Error accessing media devices:', error);

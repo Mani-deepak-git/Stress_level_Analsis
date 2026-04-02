@@ -80,23 +80,19 @@ function connectToAIBackend() {
 
 // Handle AI responses
 function handleAIResponse(message) {
+    console.log('AI response received:', message.type);
     if (message.type === 'multimodal_result' || message.type === 'analysis_result') {
-        // Broadcast analysis results to interviewers only
         const analysisData = {
             type: 'stress_analysis',
             data: message.data,
             timestamp: message.timestamp || Date.now()
         };
-        
-        // Send to all interviewers in all rooms
-        rooms.forEach((roomData, roomId) => {
-            roomData.participants.forEach(socketId => {
-                const role = userRoles.get(socketId);
-                if (role === 'interviewer') {
-                    io.to(socketId).emit('stress_analysis', analysisData);
-                }
-            });
-        });
+
+        // Broadcast to ALL connected sockets (interviewers will filter on frontend)
+        console.log(`Broadcasting to ${io.sockets.sockets.size} connected sockets`);
+        io.emit('stress_analysis', analysisData);
+        io.emit('stress_analysis_broadcast', analysisData);
+
     } else if (message.type === 'alert') {
         // Forward alerts to interviewers
         rooms.forEach((roomData, roomId) => {
@@ -221,18 +217,25 @@ io.on('connection', (socket) => {
     socket.on('video-frame', (data) => {
         const role = userRoles.get(socket.id);
         const roomId = Array.from(socket.rooms).find(room => room !== socket.id);
-        
-        // Only process interviewee's video
-        if (role === 'interviewee' && aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
-            const message = {
-                type: 'video_frame',
-                data: data.frame,
-                timestamp: data.timestamp || Date.now(),
-                userId: socket.id,
-                session_id: roomId
-            };
-            
+
+        // Store the sender's socket ID so we can route the response back to the right room
+        const message = {
+            type: 'video_frame',
+            data: data.frame,
+            timestamp: data.timestamp || Date.now(),
+            userId: socket.id,
+            session_id: roomId,
+            sender_role: role,
+            room_id: roomId
+        };
+
+        console.log(`video-frame from role=${role}, roomId=${roomId}, wsOpen=${aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN}`);
+
+        if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
             aiWebSocket.send(JSON.stringify(message));
+        } else {
+            console.log('AI WebSocket not connected, attempting reconnect...');
+            connectToAIBackend();
         }
     });
     
@@ -361,6 +364,23 @@ app.get('/api/rooms', (req, res) => {
 app.post('/api/rooms/create', (req, res) => {
     const roomId = uuidv4();
     res.json({ roomId });
+});
+
+// Debug endpoint - check real-time status
+app.get('/api/debug', (req, res) => {
+    const wsStates = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+    res.json({
+        aiWebSocketState: aiWebSocket ? wsStates[aiWebSocket.readyState] : 'null',
+        aiWebSocketConnected: aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN,
+        activeRooms: rooms.size,
+        roomDetails: Array.from(rooms.entries()).map(([roomId, data]) => ({
+            roomId,
+            participants: data.participants.size,
+            interviewers: data.interviewers.size,
+            interviewees: data.interviewees.size
+        })),
+        connectedUsers: Array.from(userRoles.entries()).map(([id, role]) => ({ id, role }))
+    });
 });
 
 // Test AI connection endpoint

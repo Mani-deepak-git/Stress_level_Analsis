@@ -37,7 +37,8 @@ const InterviewRoom = () => {
   useEffect(() => {
     const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
     const newSocket = io(nodeServerUrl, {
-      withCredentials: true,
+      withCredentials: false,
+      transports: ['websocket', 'polling'],
       extraHeaders: {
         "ngrok-skip-browser-warning": "69420"
       }
@@ -75,7 +76,24 @@ const InterviewRoom = () => {
 
     newSocket.on('stress_analysis', (data) => {
       if (role === 'interviewer') {
+        console.log('Received stress analysis:', data);
         setStressData(data.data);
+      }
+    });
+
+    // Broadcast fallback - catches analysis from any source
+    newSocket.on('stress_analysis_broadcast', (data) => {
+      if (role === 'interviewer') {
+        console.log('Received broadcast analysis:', data);
+        setStressData(data.data);
+      }
+    });
+
+    // Direct analysis result fallback
+    newSocket.on('analysis_result', (data) => {
+      if (role === 'interviewer') {
+        console.log('Received direct analysis result:', data);
+        setStressData(data.data || data);
       }
     });
 
