@@ -484,6 +484,20 @@ server.listen(PORT, () => {
     console.log(`Health check: http://localhost:${PORT}/health`);
 });
 
+// Keep-alive: ping AI backend every 10 minutes so Render free tier never sleeps
+// Also wakes the AI backend up as soon as the node server itself is alive
+setInterval(() => {
+    const http = require('http');
+    const https = require('https');
+    const url = AI_BACKEND_URL;
+    const mod = url.startsWith('https') ? https : http;
+    mod.get(`${url}/health`, (res) => {
+        console.log(`Keep-alive ping to AI backend: ${res.statusCode}`);
+    }).on('error', (e) => {
+        console.log(`Keep-alive ping failed (backend may be sleeping): ${e.message}`);
+    });
+}, 10 * 60 * 1000); // every 10 minutes
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully');
