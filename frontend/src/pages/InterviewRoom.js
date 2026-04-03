@@ -27,6 +27,9 @@ const InterviewRoom = () => {
   const [speechMetrics, setSpeechMetrics] = useState(null);
   const [showSummary, setShowSummary] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [sessionStartTime] = useState(Date.now());
+  const collectedStressRef = useRef([]);
+  const collectedAlertsRef = useRef([]);
   const navigate = useNavigate();
 
   const localVideoRef = useRef();
@@ -78,6 +81,8 @@ const InterviewRoom = () => {
       if (role === 'interviewer') {
         console.log('Received stress analysis:', data);
         setStressData(data.data);
+        // Collect locally for fallback summary
+        collectedStressRef.current.push({ ...data.data, timestamp: Date.now() });
       }
     });
 
@@ -86,6 +91,9 @@ const InterviewRoom = () => {
       if (role === 'interviewer') {
         console.log('Received broadcast analysis:', data);
         setStressData(data.data);
+        if (collectedStressRef.current.length === 0) {
+          collectedStressRef.current.push({ ...data.data, timestamp: Date.now() });
+        }
       }
     });
 
@@ -100,6 +108,7 @@ const InterviewRoom = () => {
     newSocket.on('real_time_alert', (alert) => {
       if (role === 'interviewer') {
         setAlerts(prev => [...prev, alert]);
+        collectedAlertsRef.current.push({ ...alert, timestamp: Date.now() / 1000 });
       }
     });
 
@@ -282,7 +291,11 @@ const InterviewRoom = () => {
 
       {showSummary && (
         <InterviewSummary 
-          sessionId={roomId} 
+          sessionId={roomId}
+          sessionStartTime={sessionStartTime}
+          interviewerName={userName}
+          localStressData={collectedStressRef.current}
+          localAlerts={collectedAlertsRef.current}
           onClose={() => {
             setShowSummary(false);
             navigate('/');
