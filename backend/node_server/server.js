@@ -429,9 +429,13 @@ app.get('/api/ai/test', async (req, res) => {
 });
 
 // Session management endpoints
+const AI_HTTP_TIMEOUT_MS = 15000;
+
 app.post('/api/session/start', async (req, res) => {
     try {
-        const response = await axios.post(`${AI_BACKEND_URL}/session/start`, req.body);
+        const response = await axios.post(`${AI_BACKEND_URL}/session/start`, req.body, {
+            timeout: AI_HTTP_TIMEOUT_MS
+        });
         res.json(response.data);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -440,7 +444,9 @@ app.post('/api/session/start', async (req, res) => {
 
 app.post('/api/session/end', async (req, res) => {
     try {
-        const response = await axios.post(`${AI_BACKEND_URL}/session/end`, req.body);
+        const response = await axios.post(`${AI_BACKEND_URL}/session/end`, req.body, {
+            timeout: AI_HTTP_TIMEOUT_MS
+        });
         res.json(response.data);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -449,7 +455,9 @@ app.post('/api/session/end', async (req, res) => {
 
 app.get('/api/session/:sessionId/summary', async (req, res) => {
     try {
-        const response = await axios.get(`${AI_BACKEND_URL}/session/${req.params.sessionId}/summary`);
+        const response = await axios.get(`${AI_BACKEND_URL}/session/${req.params.sessionId}/summary`, {
+            timeout: AI_HTTP_TIMEOUT_MS
+        });
         res.json(response.data);
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -150,17 +150,18 @@ const InterviewRoom = () => {
     startSessionWithSocket(socket, roomId, userName);
   };
 
-  const endSession = async () => {
-    try {
-      const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
-      await axios.post(`${nodeServerUrl}/api/session/end`, {
-        session_id: roomId
-      });
-    } catch (error) {
-      console.error('Error ending session:', error);
-    }
-    // Always show summary regardless of API success
+  const endSession = () => {
     setShowSummary(true);
+    const nodeServerUrl = process.env.REACT_APP_NODE_SERVER_URL || 'http://localhost:3000';
+    axios
+      .post(
+        `${nodeServerUrl}/api/session/end`,
+        { session_id: roomId },
+        { timeout: 12000 }
+      )
+      .catch((error) => {
+        console.warn('Session end API (non-blocking):', error.message);
+      });
   };
 
   const dismissAlert = (index) => {
